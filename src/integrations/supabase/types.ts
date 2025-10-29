@@ -14,7 +14,221 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      families: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "families_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_members: {
+        Row: {
+          biography: string | null
+          birth_date: string | null
+          created_at: string | null
+          death_date: string | null
+          family_id: string
+          full_name: string
+          gender: string | null
+          id: string
+          photo_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          biography?: string | null
+          birth_date?: string | null
+          created_at?: string | null
+          death_date?: string | null
+          family_id: string
+          full_name: string
+          gender?: string | null
+          id?: string
+          photo_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          biography?: string | null
+          birth_date?: string | null
+          created_at?: string | null
+          death_date?: string | null
+          family_id?: string
+          full_name?: string
+          gender?: string | null
+          id?: string
+          photo_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_members_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_relations: {
+        Row: {
+          created_at: string | null
+          id: string
+          member_id: string
+          notes: string | null
+          related_member_id: string
+          relation_type: Database["public"]["Enums"]["relation_type"]
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          member_id: string
+          notes?: string | null
+          related_member_id: string
+          relation_type: Database["public"]["Enums"]["relation_type"]
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          member_id?: string
+          notes?: string | null
+          related_member_id?: string
+          relation_type?: Database["public"]["Enums"]["relation_type"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_relations_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_relations_related_member_id_fkey"
+            columns: ["related_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_stories: {
+        Row: {
+          created_at: string | null
+          id: string
+          member_id: string
+          story_date: string | null
+          story_text: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          member_id: string
+          story_date?: string | null
+          story_text: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          member_id?: string
+          story_date?: string | null
+          story_text?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_stories_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          full_name: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      story_photos: {
+        Row: {
+          caption: string | null
+          created_at: string | null
+          id: string
+          photo_url: string
+          story_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string | null
+          id?: string
+          photo_url: string
+          story_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string | null
+          id?: string
+          photo_url?: string
+          story_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_photos_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "member_stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +237,25 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      relation_type:
+        | "father"
+        | "mother"
+        | "son"
+        | "daughter"
+        | "brother"
+        | "sister"
+        | "husband"
+        | "wife"
+        | "grandfather"
+        | "grandmother"
+        | "grandson"
+        | "granddaughter"
+        | "uncle"
+        | "aunt"
+        | "nephew"
+        | "niece"
+        | "cousin"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +382,27 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      relation_type: [
+        "father",
+        "mother",
+        "son",
+        "daughter",
+        "brother",
+        "sister",
+        "husband",
+        "wife",
+        "grandfather",
+        "grandmother",
+        "grandson",
+        "granddaughter",
+        "uncle",
+        "aunt",
+        "nephew",
+        "niece",
+        "cousin",
+        "other",
+      ],
+    },
   },
 } as const
