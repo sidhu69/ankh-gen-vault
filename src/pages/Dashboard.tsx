@@ -4,35 +4,73 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Users, BookOpen, LogOut, TreePine } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
   const [familyName, setFamilyName] = useState("");
   const [memberCount, setMemberCount] = useState(0);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    const currentFamily = localStorage.getItem("currentFamily");
-    if (!currentFamily) {
-      navigate("/auth");
-      return;
-    }
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
 
-    setFamilyName(currentFamily);
-    
-    const families = JSON.parse(localStorage.getItem("families") || "{}");
-    const members = families[currentFamily]?.members || [];
-    setMemberCount(members.length);
-  }, [navigate]);
+      try {
+        const { data: families, error } = await supabase
+          .from("families")
+          .select("name, id")
+          .eq("created_by", user.id)
+          .single();
 
-  const handleLogout = () => {
-    localStorage.removeItem("currentFamily");
+        if (error) throw error;
+
+        if (families) {
+          setFamilyName(families.name);
+          
+          const { count } = await supabase
+            .from("family_members")
+            .select("*", { count: "exact", head: true })
+            .eq("family_id", families.id);
+
+          setMemberCount(count || 0);
+        }
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUser();
+  }, [navigate, toast]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     toast({
       title: "Logged out",
       description: "Come back soon!",
     });
     navigate("/auth");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-subtle">

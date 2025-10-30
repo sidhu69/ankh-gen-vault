@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,10 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const AddMember = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [familyId, setFamilyId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     birthDate: "",
@@ -21,37 +24,74 @@ const AddMember = () => {
     photoUrl: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const currentFamily = localStorage.getItem("currentFamily");
-    if (!currentFamily) {
-      navigate("/auth");
-      return;
-    }
+  useEffect(() => {
+    const fetchFamily = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
 
-    const families = JSON.parse(localStorage.getItem("families") || "{}");
-    const newMember = {
-      id: Date.now().toString(),
-      ...formData,
-      createdAt: new Date().toISOString(),
-      stories: [],
-      photos: [],
+      const { data: family, error } = await supabase
+        .from("families")
+        .select("id")
+        .eq("created_by", user.id)
+        .single();
+
+      if (error || !family) {
+        toast({
+          title: "Error",
+          description: "Could not find family",
+          variant: "destructive",
+        });
+        navigate("/dashboard");
+        return;
+      }
+
+      setFamilyId(family.id);
     };
 
-    if (!families[currentFamily].members) {
-      families[currentFamily].members = [];
+    fetchFamily();
+  }, [navigate, toast]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!familyId) return;
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("family_members")
+        .insert([{
+          family_id: familyId,
+          full_name: formData.fullName,
+          birth_date: formData.birthDate || null,
+          death_date: formData.deathDate || null,
+          gender: formData.gender || null,
+          biography: formData.biography || null,
+          photo_url: formData.photoUrl || null,
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Member added!",
+        description: `${formData.fullName} has been added to your family tree`,
+      });
+
+      navigate("/members");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-    families[currentFamily].members.push(newMember);
-    
-    localStorage.setItem("families", JSON.stringify(families));
-    
-    toast({
-      title: "Member added!",
-      description: `${formData.fullName} has been added to your family tree`,
-    });
-    
-    navigate("/members");
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -181,8 +221,9 @@ const AddMember = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-heritage hover:opacity-90 transition-opacity shadow-soft"
+                disabled={loading || !familyId}
               >
-                Add to Family Tree
+                {loading ? "Adding..." : "Add to Family Tree"}
               </Button>
             </form>
           </CardContent>

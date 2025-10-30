@@ -5,67 +5,83 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [familyName, setFamilyName] = useState("");
-  const [passkey, setPasskey] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Simple local authentication for MVP
-      const storedFamilies = JSON.parse(localStorage.getItem("families") || "{}");
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
+      });
 
-      if (isLogin) {
-        // Login flow
-        if (storedFamilies[familyName] && storedFamilies[familyName].passkey === passkey) {
-          localStorage.setItem("currentFamily", familyName);
-          toast({
-            title: "Welcome back!",
-            description: `Logged in to ${familyName} family`,
-          });
-          navigate("/dashboard");
-        } else {
-          toast({
-            title: "Authentication failed",
-            description: "Invalid family name or passkey",
-            variant: "destructive",
-          });
-        }
-      } else {
-        // Signup flow
-        if (storedFamilies[familyName]) {
-          toast({
-            title: "Family exists",
-            description: "This family name is already registered. Please login instead.",
-            variant: "destructive",
-          });
-        } else {
-          storedFamilies[familyName] = {
-            passkey,
-            createdAt: new Date().toISOString(),
-            members: [],
-            adminId: null,
-          };
-          localStorage.setItem("families", JSON.stringify(storedFamilies));
-          localStorage.setItem("currentFamily", familyName);
-          toast({
-            title: "Family created!",
-            description: `Welcome to ${familyName} family tree`,
-          });
-          navigate("/dashboard");
-        }
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // Create family
+        const { error: familyError } = await supabase
+          .from("families")
+          .insert([{ name: familyName, created_by: authData.user.id }]);
+
+        if (familyError) throw familyError;
+
+        toast({
+          title: "Account created!",
+          description: "Welcome to your family tree",
+        });
+
+        navigate("/dashboard");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Something went wrong. Please try again.",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Welcome back!",
+        description: "Successfully signed in",
+      });
+
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
@@ -88,51 +104,105 @@ const Auth = () => {
           </div>
           <CardTitle className="text-3xl font-serif">Vanshavali</CardTitle>
           <CardDescription className="text-base">
-            {isLogin ? "Welcome back to your family tree" : "Create your family legacy"}
+            Preserve your family's precious memories
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="familyName">Family Name</Label>
-              <Input
-                id="familyName"
-                placeholder="Kumar Family, Singh Parivaar..."
-                value={familyName}
-                onChange={(e) => setFamilyName(e.target.value)}
-                required
-                className="border-border focus:ring-primary"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="passkey">Family Passkey</Label>
-              <Input
-                id="passkey"
-                type="password"
-                placeholder="Shared family password"
-                value={passkey}
-                onChange={(e) => setPasskey(e.target.value)}
-                required
-                className="border-border focus:ring-primary"
-              />
-            </div>
-            <Button 
-              type="submit" 
-              className="w-full bg-gradient-heritage hover:opacity-90 transition-opacity shadow-soft"
-              disabled={loading}
-            >
-              {loading ? "Please wait..." : isLogin ? "Enter Family Tree" : "Create Family"}
-            </Button>
-          </form>
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              {isLogin ? "Need to create a new family? Sign up" : "Already have a family? Login"}
-            </button>
-          </div>
+          <Tabs defaultValue="signin" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="signin">Sign In</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="signin">
+              <form onSubmit={handleSignIn} className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signin-email">Email</Label>
+                  <Input
+                    id="signin-email"
+                    type="email"
+                    placeholder="your@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signin-password">Password</Label>
+                  <Input
+                    id="signin-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-gradient-heritage hover:opacity-90 transition-opacity shadow-soft"
+                  disabled={loading}
+                >
+                  {loading ? "Signing in..." : "Sign In"}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="signup">
+              <form onSubmit={handleSignUp} className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    placeholder="Your name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="familyName">Family Name</Label>
+                  <Input
+                    id="familyName"
+                    placeholder="Singh Family"
+                    value={familyName}
+                    onChange={(e) => setFamilyName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="your@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Password</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-gradient-heritage hover:opacity-90 transition-opacity shadow-soft"
+                  disabled={loading}
+                >
+                  {loading ? "Creating account..." : "Create Account"}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
