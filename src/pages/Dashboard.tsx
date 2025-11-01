@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, BookOpen, LogOut, TreePine } from "lucide-react";
+import { Plus, Users, BookOpen, TreePine, TrendingUp, Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Layout } from "@/components/Layout";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard = () => {
   const [familyName, setFamilyName] = useState("");
@@ -55,135 +56,150 @@ const Dashboard = () => {
     checkUser();
   }, [navigate, toast]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    toast({
-      title: "Logged out",
-      description: "Come back soon!",
-    });
-    navigate("/auth");
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
+      <Layout>
+        <div className="container mx-auto px-4 py-8 space-y-8">
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="w-12 h-12 rounded-full mb-2" />
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-4 w-full" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-24" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      {/* Header */}
-      <header className="bg-card border-b border-border shadow-soft">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-serif font-bold text-foreground">{familyName}</h1>
-            <p className="text-sm text-muted-foreground">Family Tree Dashboard</p>
+    <Layout>
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        {/* Hero Section */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 p-8 border border-border/50 backdrop-blur-sm animate-fade-in">
+          <div className="absolute inset-0 bg-grid-white/10 [mask-image:radial-gradient(white,transparent_70%)]" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-2">
+              <Heart className="w-8 h-8 text-primary animate-pulse" />
+              <h1 className="text-4xl font-serif font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+                {familyName}
+              </h1>
+            </div>
+            <p className="text-lg text-muted-foreground">Preserving {memberCount} generations of memories</p>
           </div>
-          <Button 
-            variant="outline" 
-            onClick={handleLogout}
-            className="border-border hover:bg-muted"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {/* Family Tree Card */}
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card 
-            className="shadow-soft hover:shadow-heritage transition-all cursor-pointer border-border hover:border-primary animate-fade-in"
+            className="group relative overflow-hidden cursor-pointer border-border hover:border-primary transition-all duration-300 animate-fade-in hover:scale-105"
             onClick={() => navigate("/tree")}
           >
-            <CardHeader>
-              <div className="w-12 h-12 rounded-full bg-gradient-heritage flex items-center justify-center mb-2">
-                <TreePine className="w-6 h-6 text-primary-foreground" />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardHeader className="relative">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-lg">
+                <TreePine className="w-7 h-7 text-primary-foreground" />
               </div>
               <CardTitle className="text-xl">Family Tree</CardTitle>
-              <CardDescription>Visualize your lineage</CardDescription>
+              <CardDescription>Visualize your heritage</CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-primary">{memberCount} Members</p>
-              <p className="text-sm text-muted-foreground mt-1">Click to explore</p>
+            <CardContent className="relative">
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-bold text-primary">{memberCount}</p>
+                <p className="text-sm text-muted-foreground">Members</p>
+              </div>
+              <div className="flex items-center gap-1 mt-2 text-xs text-green-600">
+                <TrendingUp className="w-3 h-3" />
+                <span>Growing legacy</span>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Add Member Card */}
           <Card 
-            className="shadow-soft hover:shadow-heritage transition-all cursor-pointer border-border hover:border-secondary animate-fade-in"
+            className="group relative overflow-hidden cursor-pointer border-border hover:border-secondary transition-all duration-300 animate-fade-in hover:scale-105"
             style={{ animationDelay: "0.1s" }}
             onClick={() => navigate("/add-member")}
           >
-            <CardHeader>
-              <div className="w-12 h-12 rounded-full bg-gradient-gold flex items-center justify-center mb-2">
-                <Plus className="w-6 h-6 text-secondary-foreground" />
+            <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardHeader className="relative">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-secondary to-secondary/50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-lg">
+                <Plus className="w-7 h-7 text-secondary-foreground" />
               </div>
               <CardTitle className="text-xl">Add Member</CardTitle>
-              <CardDescription>Expand your family tree</CardDescription>
+              <CardDescription>Expand your tree</CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Add photos, stories, and connections</p>
+            <CardContent className="relative">
+              <p className="text-sm text-muted-foreground">
+                Add photos, stories, and build lasting connections
+              </p>
             </CardContent>
           </Card>
 
-          {/* View Members Card */}
           <Card 
-            className="shadow-soft hover:shadow-heritage transition-all cursor-pointer border-border hover:border-accent animate-fade-in"
+            className="group relative overflow-hidden cursor-pointer border-border hover:border-accent transition-all duration-300 animate-fade-in hover:scale-105"
             style={{ animationDelay: "0.2s" }}
             onClick={() => navigate("/members")}
           >
-            <CardHeader>
-              <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center mb-2">
-                <Users className="w-6 h-6 text-accent-foreground" />
+            <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardHeader className="relative">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-accent to-accent/50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-lg">
+                <Users className="w-7 h-7 text-accent-foreground" />
               </div>
               <CardTitle className="text-xl">All Members</CardTitle>
-              <CardDescription>Browse family profiles</CardDescription>
+              <CardDescription>Browse profiles</CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">View stories, photos, and memories</p>
+            <CardContent className="relative">
+              <p className="text-sm text-muted-foreground">
+                Explore stories, photos, and treasured memories
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Welcome Section */}
-        <Card className="shadow-soft border-border animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
+        {/* Getting Started Guide */}
+        <Card className="border-border shadow-lg animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-primary" />
-              Getting Started
-            </CardTitle>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                <BookOpen className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <div>
+                <CardTitle>Getting Started</CardTitle>
+                <CardDescription>Build your family legacy in 3 simple steps</CardDescription>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0">1</div>
-              <div>
-                <h4 className="font-medium">Add Family Members</h4>
-                <p className="text-sm text-muted-foreground">Start by adding your parents, grandparents, or yourself</p>
-              </div>
+          <CardContent className="grid md:grid-cols-3 gap-6">
+            <div className="space-y-2 p-4 rounded-lg bg-gradient-to-br from-primary/5 to-transparent border border-primary/20">
+              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">1</div>
+              <h4 className="font-semibold">Add Family Members</h4>
+              <p className="text-sm text-muted-foreground">Start by adding your parents, grandparents, or yourself to begin building</p>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0">2</div>
-              <div>
-                <h4 className="font-medium">Create Relationships</h4>
-                <p className="text-sm text-muted-foreground">Connect family members to build your tree</p>
-              </div>
+            <div className="space-y-2 p-4 rounded-lg bg-gradient-to-br from-secondary/5 to-transparent border border-secondary/20">
+              <div className="w-8 h-8 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center text-sm font-bold">2</div>
+              <h4 className="font-semibold">Create Relationships</h4>
+              <p className="text-sm text-muted-foreground">Connect family members together to visualize your family tree structure</p>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0">3</div>
-              <div>
-                <h4 className="font-medium">Add Stories & Photos</h4>
-                <p className="text-sm text-muted-foreground">Preserve memories with photos and biographical stories</p>
-              </div>
+            <div className="space-y-2 p-4 rounded-lg bg-gradient-to-br from-accent/5 to-transparent border border-accent/20">
+              <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm font-bold">3</div>
+              <h4 className="font-semibold">Add Stories & Photos</h4>
+              <p className="text-sm text-muted-foreground">Preserve precious memories with photos and biographical stories</p>
             </div>
           </CardContent>
         </Card>
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 };
 
