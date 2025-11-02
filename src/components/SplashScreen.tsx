@@ -23,7 +23,7 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     const timer = setTimeout(() => {
       setFadeOut(true);
       setTimeout(onComplete, 1000);
-    }, 2000);
+    }, 4000);
 
     return () => {
       clearTimeout(timer);
@@ -54,10 +54,10 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
           {/* Center content */}
           <div className="relative z-10 text-center space-y-4">
             <div className="relative">
-              <h1 className="text-7xl font-bold text-foreground drop-shadow-2xl animate-scale-in">
+              <h1 className="text-5xl font-bold text-foreground drop-shadow-lg animate-scale-in tracking-wide">
                 Vanshavali
               </h1>
-              <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 blur-2xl animate-pulse -z-10" />
+              <div className="absolute -inset-4 bg-primary/10 blur-3xl animate-pulse -z-10" />
             </div>
           </div>
         </div>
