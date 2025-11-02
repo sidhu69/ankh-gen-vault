@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, User, Calendar, Heart, Plus, Users, BookOpen } from "lucide-react";
+import { ArrowLeft, User, Calendar, Heart, Plus, Users, BookOpen, Trash2, Upload as UploadIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Layout } from "@/components/Layout";
@@ -41,6 +41,11 @@ interface Story {
   story_text: string;
   story_date: string | null;
   created_at: string;
+  photos?: Array<{
+    id: string;
+    photo_url: string;
+    caption: string | null;
+  }>;
 }
 
 const MemberProfile = () => {
@@ -66,6 +71,8 @@ const MemberProfile = () => {
     story_text: "",
     story_date: "",
   });
+
+  const [storyPhotos, setStoryPhotos] = useState<File[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -122,10 +129,13 @@ const MemberProfile = () => {
         if (relationsError) throw relationsError;
         setRelations(relationsData || []);
 
-        // Get stories
+        // Get stories with photos
         const { data: storiesData, error: storiesError } = await supabase
           .from("member_stories")
-          .select("*")
+          .select(`
+            *,
+            photos:story_photos(id, photo_url, caption)
+          `)
           .eq("member_id", id)
           .order("story_date", { ascending: false });
 
@@ -182,16 +192,44 @@ const MemberProfile = () => {
     e.preventDefault();
 
     try {
-      const { error } = await supabase
+      // Insert story
+      const { data: newStory, error: storyError } = await supabase
         .from("member_stories")
         .insert([{
           member_id: id,
           title: storyForm.title,
           story_text: storyForm.story_text,
           story_date: storyForm.story_date || null,
-        }]);
+        }])
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (storyError) throw storyError;
+
+      // Upload photos if any
+      if (storyPhotos.length > 0 && newStory) {
+        for (const photo of storyPhotos) {
+          const fileExt = photo.name.split('.').pop();
+          const fileName = `${newStory.id}/${Date.now()}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('story-photos')
+            .upload(fileName, photo);
+
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('story-photos')
+            .getPublicUrl(fileName);
+
+          await supabase
+            .from("story_photos")
+            .insert([{
+              story_id: newStory.id,
+              photo_url: publicUrl,
+            }]);
+        }
+      }
 
       toast({
         title: "Story added!",
@@ -200,6 +238,49 @@ const MemberProfile = () => {
 
       setDialogOpen(null);
       setStoryForm({ title: "", story_text: "", story_date: "" });
+      setStoryPhotos([]);
+      window.location.reload();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteStory = async (storyId: string) => {
+    if (!confirm("Are you sure you want to delete this story?")) return;
+
+    try {
+      // Delete photos from storage
+      const { data: photos } = await supabase
+        .from("story_photos")
+        .select("photo_url")
+        .eq("story_id", storyId);
+
+      if (photos) {
+        for (const photo of photos) {
+          const path = photo.photo_url.split('/story-photos/')[1];
+          if (path) {
+            await supabase.storage.from('story-photos').remove([path]);
+          }
+        }
+      }
+
+      // Delete story (cascade will delete story_photos records)
+      const { error } = await supabase
+        .from("member_stories")
+        .delete()
+        .eq("id", storyId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Story deleted",
+        description: "Memory removed successfully",
+      });
+
       window.location.reload();
     } catch (error: any) {
       toast({
@@ -441,6 +522,36 @@ const MemberProfile = () => {
                     <Label>Story</Label>
                     <Textarea value={storyForm.story_text} onChange={(e) => setStoryForm({...storyForm, story_text: e.target.value})} placeholder="Write the story..." rows={6} required />
                   </div>
+                  <div className="space-y-2">
+                    <Label>Photos (Optional)</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {storyPhotos.map((photo, idx) => (
+                        <div key={idx} className="relative">
+                          <img src={URL.createObjectURL(photo)} alt="" className="w-20 h-20 object-cover rounded border" />
+                          <button
+                            type="button"
+                            onClick={() => setStoryPhotos(storyPhotos.filter((_, i) => i !== idx))}
+                            className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      <label className="w-20 h-20 border-2 border-dashed border-border rounded flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
+                        <UploadIcon className="w-6 h-6 text-muted-foreground" />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            setStoryPhotos([...storyPhotos, ...files]);
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
                   <Button type="submit" className="w-full">Add Story</Button>
                 </form>
               </DialogContent>
@@ -452,12 +563,35 @@ const MemberProfile = () => {
             ) : (
               <div className="space-y-4">
                 {stories.map((story) => (
-                  <div key={story.id} className="p-4 border border-border rounded-lg">
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-medium">{story.title}</h3>
-                      {story.story_date && <p className="text-sm text-muted-foreground">{formatDate(story.story_date)}</p>}
+                  <div key={story.id} className="p-4 border border-border rounded-lg space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-medium">{story.title}</h3>
+                        {story.story_date && <p className="text-sm text-muted-foreground">{formatDate(story.story_date)}</p>}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteStory(story.id)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                     <p className="text-foreground whitespace-pre-wrap">{story.story_text}</p>
+                    {story.photos && story.photos.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {story.photos.map((photo) => (
+                          <img
+                            key={photo.id}
+                            src={photo.photo_url}
+                            alt={photo.caption || "Story photo"}
+                            className="w-32 h-32 object-cover rounded border-2 border-border hover:border-primary transition-colors cursor-pointer"
+                            onClick={() => window.open(photo.photo_url, '_blank')}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
