@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Layout } from "@/components/Layout";
 
 const AddMember = () => {
   const navigate = useNavigate();
@@ -106,22 +107,19 @@ const AddMember = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      <header className="bg-card border-b border-border shadow-soft">
-        <div className="container mx-auto px-4 py-4">
+    <Layout>
+      <div className="container mx-auto px-4 py-6 max-w-2xl space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-serif font-bold text-foreground">Add Family Member</h1>
           <Button 
             variant="ghost" 
             onClick={() => navigate("/dashboard")}
-            className="mb-2"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
+            Back
           </Button>
-          <h1 className="text-2xl font-serif font-bold text-foreground">Add Family Member</h1>
         </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
         <Card className="shadow-heritage animate-fade-in-up">
           <CardHeader>
             <CardTitle>Member Information</CardTitle>
@@ -228,8 +226,8 @@ const AddMember = () => {
             </form>
           </CardContent>
         </Card>
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 };
 

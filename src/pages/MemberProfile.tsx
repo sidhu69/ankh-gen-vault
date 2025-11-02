@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, User, Calendar, Heart, Plus, Users, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Layout } from "@/components/Layout";
 
 interface Member {
   id: string;
@@ -225,38 +226,39 @@ const MemberProfile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
+      <Layout>
+        <div className="flex items-center justify-center h-full">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </Layout>
     );
   }
 
   if (!member) {
     return (
-      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
-        <p className="text-muted-foreground">Member not found</p>
-      </div>
+      <Layout>
+        <div className="flex items-center justify-center h-full">
+          <p className="text-muted-foreground">Member not found</p>
+        </div>
+      </Layout>
     );
   }
 
   const age = calculateAge(member.birth_date, member.death_date);
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      <header className="bg-card border-b border-border shadow-soft">
-        <div className="container mx-auto px-4 py-4">
+    <Layout>
+      <div className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-serif font-bold text-foreground">Member Profile</h1>
           <Button 
             variant="ghost" 
             onClick={() => navigate("/members")}
-            className="mb-2"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Members
+            Back
           </Button>
         </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Profile Header */}
         <Card className="shadow-heritage mb-6 animate-fade-in">
           <CardContent className="p-8">
@@ -462,8 +464,8 @@ const MemberProfile = () => {
             )}
           </CardContent>
         </Card>
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 };
 

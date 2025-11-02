@@ -3,50 +3,93 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Layout } from "@/components/Layout";
+import { useToast } from "@/hooks/use-toast";
 
 interface Member {
   id: string;
-  fullName: string;
-  birthDate: string;
-  gender: string;
-  photoUrl: string;
+  full_name: string;
+  birth_date: string | null;
+  gender: string | null;
+  photo_url: string | null;
 }
 
 const FamilyTree = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [members, setMembers] = useState<Member[]>([]);
   const [familyName, setFamilyName] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const currentFamily = localStorage.getItem("currentFamily");
-    if (!currentFamily) {
-      navigate("/auth");
-      return;
-    }
+    const fetchData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
 
-    setFamilyName(currentFamily);
-    const families = JSON.parse(localStorage.getItem("families") || "{}");
-    setMembers(families[currentFamily]?.members || []);
-  }, [navigate]);
+      try {
+        const { data: family, error: familyError } = await supabase
+          .from("families")
+          .select("id, name")
+          .eq("created_by", user.id)
+          .single();
+
+        if (familyError) throw familyError;
+
+        setFamilyName(family.name);
+
+        const { data: membersData, error: membersError } = await supabase
+          .from("family_members")
+          .select("*")
+          .eq("family_id", family.id);
+
+        if (membersError) throw membersError;
+        setMembers(membersData || []);
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [navigate, toast]);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-full">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      <header className="bg-card border-b border-border shadow-soft">
-        <div className="container mx-auto px-4 py-4">
+    <Layout>
+      <div className="container mx-auto px-4 py-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-serif font-bold text-foreground">{familyName} Tree</h1>
+            <p className="text-sm text-muted-foreground mt-1">Visual family tree (MVP - Basic view)</p>
+          </div>
           <Button 
             variant="ghost" 
             onClick={() => navigate("/dashboard")}
-            className="mb-2"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
-          <h1 className="text-2xl font-serif font-bold text-foreground">{familyName} Tree</h1>
-          <p className="text-sm text-muted-foreground">Visual family tree (MVP - Basic view)</p>
         </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-8">
         {members.length === 0 ? (
           <Card className="shadow-soft text-center py-12 animate-fade-in">
             <CardContent>
@@ -69,8 +112,8 @@ const FamilyTree = () => {
                 >
                   <div className="flex flex-col items-center gap-2 p-4 bg-card rounded-lg shadow-soft hover:shadow-heritage transition-all">
                     <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-primary shadow-soft">
-                      {member.photoUrl ? (
-                        <img src={member.photoUrl} alt={member.fullName} className="w-full h-full object-cover" />
+                      {member.photo_url ? (
+                        <img src={member.photo_url} alt={member.full_name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full bg-gradient-heritage flex items-center justify-center">
                           <User className="w-8 h-8 text-primary-foreground" />
@@ -78,10 +121,10 @@ const FamilyTree = () => {
                       )}
                     </div>
                     <div className="text-center">
-                      <p className="font-medium text-sm">{member.fullName}</p>
-                      {member.birthDate && (
+                      <p className="font-medium text-sm">{member.full_name}</p>
+                      {member.birth_date && (
                         <p className="text-xs text-muted-foreground">
-                          {new Date(member.birthDate).getFullYear()}
+                          {new Date(member.birth_date).getFullYear()}
                         </p>
                       )}
                     </div>
@@ -101,8 +144,8 @@ const FamilyTree = () => {
             </Card>
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 };
 
