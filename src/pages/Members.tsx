@@ -113,7 +113,7 @@ const Members = () => {
       <div className="container mx-auto px-4 py-8 space-y-6">
         <div className="flex items-center justify-between animate-fade-in">
           <div>
-            <h1 className="text-3xl font-serif font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            <h1 className="text-3xl font-serif font-bold text-foreground">
               {familyName} Members
             </h1>
             <p className="text-muted-foreground mt-1">
@@ -122,7 +122,7 @@ const Members = () => {
           </div>
           <Button 
             onClick={() => navigate("/add-member")} 
-            className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity shadow-lg"
+            className="shadow-lg"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Member
@@ -142,7 +142,7 @@ const Members = () => {
               <Button 
                 onClick={() => navigate("/add-member")} 
                 size="lg"
-                className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity shadow-lg"
+                className="shadow-lg"
               >
                 <Plus className="w-5 h-5 mr-2" />
                 Add First Member

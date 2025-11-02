@@ -92,7 +92,7 @@ const Dashboard = () => {
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-2">
               <Heart className="w-8 h-8 text-primary animate-pulse" />
-              <h1 className="text-4xl font-serif font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              <h1 className="text-4xl font-serif font-bold text-foreground">
                 {familyName}
               </h1>
             </div>
