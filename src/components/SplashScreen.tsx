@@ -78,6 +78,11 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
             </div>
             <p className="text-xs text-muted-foreground">Loading your family tree...</p>
           </div>
+          
+          {/* Built by credit */}
+          <p className="text-sm text-muted-foreground/60 animate-fade-in" style={{ animationDelay: "0.6s" }}>
+            Built by Prothon
+          </p>
         </div>
 
         {/* Floating particles */}
